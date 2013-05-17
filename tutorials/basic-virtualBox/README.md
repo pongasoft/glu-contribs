@@ -8,8 +8,8 @@ Steps (for OSX host)
 
 1. Install newest [Virtual Box](https://www.virtualbox.org/)
 1. Install newest [Vagrant](http://downloads.vagrantup.com/)
-1. `git clone git@github.com:pongasoft/glu.git`
-1. `cd glu/vagrant`
+1. `git clone git@github.com:pongasoft/glu-contribs.git`
+1. `cd tutorials/basic-virtualBox`
 1. `vagrant up --glu-version=5.0.0` (or specify another verion)
 1. `vagrant ssh`
 1. `sudo su -l`
