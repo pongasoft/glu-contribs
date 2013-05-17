@@ -8,13 +8,14 @@ Steps (for OSX host)
 
 1. Install newest [Virtual Box](https://www.virtualbox.org/)
 1. Install newest [Vagrant](http://downloads.vagrantup.com/)
-1. `git clone git@github.com:pongasoft/glu-contribs.git`
+1. `git clone git@github.com:pongasoft/glu-contribs.git`. Note that in case you do not have `git` installed nor do you want to install it, you can simply download the latest version of [glu-constribs](https://github.com/pongasoft/glu-contribs/archive/master.zip) and unzip it.
 1. `cd tutorials/basic-virtualBox`
 1. `vagrant up --glu-version=5.0.0` (or specify another verion)
 1. `vagrant ssh`
 1. `sudo su -l`
 1. `cd /var/lib/glu`
 1. Now you are ready to follow along with the [glu tutorial](http://pongasoft.github.io/glu/docs/latest/html/tutorial.html)
+1. Once you are done with the tutorial, you can issue the command `vagrant destroy` to remove all traces of the VM from your system
 
 NOTE: If you see errors from the glu tutorial script about JAVA_HOME not being set, run the command as follows: 
 `JAVA_HOME=/usr/lib/jvm/java-7-oracle JRE_HOME=/usr/lib/jvm/java-7-oracle/jre ./bin/tutorial.sh`
