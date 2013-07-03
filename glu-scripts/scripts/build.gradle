@@ -1,0 +1,145 @@
+/*
+ * Copyright (c) 2011-2013 Yan Pujante
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
+
+/**
+ * Configuring for all scripts
+ */
+import org.linkedin.gradle.tasks.SingleArtifactTask
+import org.apache.tools.ant.filters.ReplaceTokens
+import java.util.regex.Pattern
+
+subprojects {
+
+  apply plugin: 'groovy'
+  apply plugin: 'org.linkedin.release'
+
+  release {
+    releaseConfigurations << 'script'
+  }
+
+  configurations {
+    provided
+  }
+
+  sourceSets {
+    main { compileClasspath += configurations.provided }
+  }
+
+  idea {
+    module {
+      scopes.PROVIDED.plus += configurations.provided
+    }
+  }
+
+  dependencies {
+    provided spec.external.utilsMiscGroovy
+    provided spec.external.gluAgentAPI
+    compile spec.external.groovy
+
+    testCompile spec.external.gluScriptsTestFwk
+    testCompile spec.external.junit
+  }
+
+  test {
+    jvmArgs = ["-Dlog4j.configuration=file:${new File(projectDir, '../conf/log4j.xml').canonicalPath}"]
+  }
+
+  def scriptTask = task('scripts')
+
+  def scripts = fileTree(dir: 'src/main/groovy', include: '**/*GluScript.groovy')
+
+  version = computeVersion(scripts)
+
+  logger.lifecycle "${project.name} - ${version}"
+
+  scripts.each { File scriptFile ->
+    def baseName = scriptFile.name - '.groovy'
+    task([type: SingleArtifactTask], baseName) {
+      artifactFile = scriptFile
+      artifactReleaseInfo =
+        [
+          name: baseName,
+          extension: 'groovy',
+          configurations: ['script']
+        ]
+    }
+
+    scriptTask.dependsOn(baseName)
+  }
+
+  /**
+   * Returns the glu script uri
+   */
+  task('glu-script-uri') << {
+
+    def baseUrl = "xxx"
+    if(project.hasProperty('baseUrl'))
+      baseUrl = project.baseUrl
+    else
+    {
+      logger.warn "Warning: Use -PbaseUrl=xxx to define the base path/url for the links in the classpath (ex: -PbaseUrl=http://acme.org/repository)"
+    }
+
+    def root = "${file('src/main/groovy/').canonicalPath}/"
+
+    def artifacts = configurations.runtime.resolve() as List
+    configurations.runtime.artifacts.each { artifact ->
+      artifacts = [artifact.file, *artifacts]
+    }
+    artifacts = artifacts.findAll { it.name != "groovy-all-${spec.versions.groovy}.jar"}
+
+    def urlEncodedClasspath = artifacts.collect { "cp=${URLEncoder.encode("${baseUrl}/${it.name}", 'UTF-8')}"}
+
+    scripts.each { File scriptFile ->
+      String className = scriptFile.canonicalPath - root
+      className = className - '.groovy'
+      className = className.replace('/', '.')
+      def header = "For ${scriptFile.name}:"
+      println '-' * header.size()
+      println "${header}"
+      println '-' * header.size()
+      println "className=${className}"
+      println "artifacts=${artifacts.canonicalPath.join(', ')}"
+      println "uri=class:/${URLEncoder.encode(className, 'UTF-8')}?${urlEncodedClasspath.join('&')}"
+    }
+  }
+}
+
+private String computeVersion(scripts)
+{
+  Pattern VERSION_REGEX = ~/def\s+version\s*=\s*'([^']+)'/
+
+  String version = null
+  scripts.each { File scriptFile ->
+    scriptFile.eachLine { String line ->
+      def matcher = VERSION_REGEX.matcher(line)
+      if(matcher.find())
+      {
+        String newVersion = matcher[0][1]
+        if(version != null && version != newVersion)
+          throw new IllegalStateException("different versions found ${version} != ${newVersion} for ${scripts}")
+        version = newVersion
+      }
+    }
+  }
+  if(version == null)
+    throw new IllegalStateException("could not compute version for ${scripts.collect { it.canonicalPath }}")
+
+  if(spec.version.endsWith('-SNAPSHOT'))
+    version = "${version}-SNAPSHOT".toString()
+
+  return version
+}

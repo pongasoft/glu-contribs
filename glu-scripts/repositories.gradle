@@ -1,0 +1,100 @@
+
+/*
+ * Copyright (c) 2010-2010 LinkedIn, Inc
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
+
+def topReleaseDir = new File(userConfig.top.release.dir ?: "${topBuildDir}/release").canonicalFile
+def topPublishDir = new File(userConfig.top.publish.dir ?: "${topBuildDir}/publish").canonicalFile
+
+/**
+ * Repositories for build
+ */
+allRepositories.build = {
+  // for libs included in this project
+  mavenRepo url: "file://${rootDir}/local-maven-repo"
+
+  ivy {
+    name = "build-release"
+    url = topReleaseDir
+    layout 'maven'
+  }
+
+  mavenRepo name: 'build-publish', url: topPublishDir.toURI()
+
+  mavenCentral()
+
+  mavenRepo name: 'restlet', url: "http://maven.restlet.org"
+
+  bintray.jcenter()
+}
+
+/**
+ * Repositories for buildScript
+ */
+allRepositories.buildscript = allRepositories.build
+
+/**
+ * Repositories for release
+ */
+allRepositories.snapshotRelease = {
+  ivy {
+    name = "local-release"
+    url = topReleaseDir
+    layout 'maven'
+  }
+}
+
+allRepositories.release = allRepositories.snapshotRelease
+
+def pomConfig = { pomToConfigure ->
+  pomToConfigure.project {
+    name project.rootProject.name
+    description 'glu scripts contributed to glu'
+    url 'http://github.com/pongasoft/glu-contribs'
+    licenses {
+      license {
+        name 'The Apache Software License, Version 2.0'
+        url 'http://www.apache.org/licenses/LICENSE-2.0'
+      }
+    }
+    developers {
+      developer {
+        id 'ypujante'
+        name 'Yan Pujante'
+        email 'yan@pongasoft.com'
+      }
+    }
+    scm {
+      connection "scm:git:${spec.scmUrl}"
+      developerConnection "scm:git:${spec.scmUrl}"
+      url spec.scmUrl
+    }
+  }
+}
+
+/**
+ * Repositories for publish (snapshots are published locally)
+ */
+allRepositories.snapshotPublish = {
+  mavenDeployer {
+    repository(url: "file://localhost${topPublishDir}")
+    pom.whenConfigured(pomConfig)
+  }
+}
+
+/**
+ * Local maven repo
+ */
+allRepositories.publish = allRepositories.snapshotPublish

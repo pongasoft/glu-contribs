@@ -1,1 +1,5 @@
 tutorials/basic-virtualBox/.vagrant/
+glu-scripts/.gradle
+*.iml
+*.ipr
+*.iws
